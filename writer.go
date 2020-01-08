@@ -68,6 +68,11 @@ func (w *Writer) SetPrefix(s string) {
 	w.prefixLen = utf8.RuneCountInString(s)
 }
 
+// GetPrefix return the current Writer prefix.
+func (w *Writer) GetPrefix() string {
+	return w.prefix
+}
+
 // SetPosition set current line position for correct word wrapping.
 // A negative value will increase the allowable length of the first line.
 func (w *Writer) SetPosition(p int) {
