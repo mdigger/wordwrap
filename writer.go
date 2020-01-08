@@ -120,6 +120,8 @@ func (w *Writer) writeNewLine() error {
 // Write wraps UTF-8 encoded text at word boundaries when lines exceed a limit
 // number of characters. Newlines are preserved, including consecutive and
 // trailing newlines, though trailing whitespace is stripped from each line.
+//
+// It returns the number of bytes written and any write error encountered.
 func (w *Writer) Write(b []byte) (n int, err error) {
 	if w.width < 1 {
 		return w.writer.Write(b) // no wrap
@@ -168,7 +170,8 @@ func (w *Writer) Write(b []byte) (n int, err error) {
 	return n, err
 }
 
-// WriteString implement io.WrieString.
+// WriteString implement io.WrieString. It returns the number of bytes written
+// and any write error encountered.
 func (w *Writer) WriteString(str string) (n int, err error) {
 	return w.Write([]byte(str))
 }
@@ -179,14 +182,15 @@ func (w *Writer) WriteByte(c byte) (err error) {
 	return err
 }
 
-// WriteRune write rune to Writer.
+// WriteRune write rune to Writer. It returns the number of bytes written and
+// any write error encountered.
 func (w *Writer) WriteRune(r rune) (n int, err error) {
 	var b = make([]byte, 0, utf8.UTFMax)
 	utf8.EncodeRune(b, r)
 	return w.Write(b)
 }
 
-// Printf formats according to a format specifier and writes to WrapWriter.
+// Printf formats according to a format specifier and writes to Writer.
 // It returns the number of bytes written and any write error encountered.
 func (w *Writer) Printf(format string, a ...interface{}) (n int, err error) {
 	return fmt.Fprintf(w, format, a...)
