@@ -42,6 +42,7 @@ type Writer struct {
 	prefix      string       // prefix for new line
 	prefixLen   int          // prefix length in runes
 	breakpoints []rune       // additional word break runes
+	ansi        bool         // ANSI escape sequences flag
 }
 
 // New returns a new initialized wrapper over io.Writer to write lines with
@@ -111,7 +112,7 @@ func (w *Writer) writePrefix() error {
 }
 
 func (w *Writer) writeWord() error {
-	if w.wordLen < 1 {
+	if w.word.Len() == 0 {
 		return nil
 	}
 	if err := w.writePrefix(); err != nil {
@@ -153,9 +154,18 @@ func (w *Writer) Write(b []byte) (n int, err error) {
 		n += size
 
 		switch {
+		case curr == '\x1B': // ANSI escape sequence
+			w.word.WriteRune(curr)
+			w.ansi = true
+		case w.ansi: // in ANSI escape sequence
+			w.word.WriteRune(curr)
+			if (curr >= 0x40 && curr <= 0x5a) || (curr >= 0x61 && curr <= 0x7a) {
+				// ANSI sequence terminated
+				w.ansi = false
+			}
 		case curr == '\n': // end of current line
 			// see if we can add the content of the space buffer to the current line
-			if w.wordLen == 0 {
+			if w.word.Len() == 0 {
 				if w.pos+w.space.Len() > w.width {
 					w.pos = 0
 					w.space.Reset()
