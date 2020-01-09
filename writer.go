@@ -190,9 +190,9 @@ func (w *Writer) WriteByte(c byte) (err error) {
 // WriteRune write rune to Writer. It returns the number of bytes written and
 // any write error encountered.
 func (w *Writer) WriteRune(r rune) (n int, err error) {
-	var b = make([]byte, 0, utf8.UTFMax)
-	utf8.EncodeRune(b, r)
-	return w.Write(b)
+	var b = make([]byte, utf8.UTFMax)
+	size := utf8.EncodeRune(b, r)
+	return w.Write(b[:size])
 }
 
 // Printf formats according to a format specifier and writes to Writer.
