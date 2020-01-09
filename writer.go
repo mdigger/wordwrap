@@ -149,21 +149,21 @@ func (w *Writer) Write(b []byte) (n int, err error) {
 	}
 	// read all by runes
 	for len(b) > 0 {
-		curr, size := utf8.DecodeRune(b) // current rune
-		b = b[size:]                     // skip rune from source
+		c, size := utf8.DecodeRune(b) // current rune
+		b = b[size:]                  // skip rune from source
 		n += size
 
 		switch {
-		case curr == '\x1B': // ANSI escape sequence
-			w.word.WriteRune(curr)
+		case c == '\x1B': // ANSI escape sequence
+			w.word.WriteRune(c)
 			w.ansi = true
 		case w.ansi: // in ANSI escape sequence
-			w.word.WriteRune(curr)
-			if (curr >= 0x40 && curr <= 0x5a) || (curr >= 0x61 && curr <= 0x7a) {
+			w.word.WriteRune(c)
+			if (c >= 0x40 && c <= 0x5a) || (c >= 0x61 && c <= 0x7a) {
 				// ANSI sequence terminated
 				w.ansi = false
 			}
-		case curr == '\n': // end of current line
+		case c == '\n': // end of current line
 			// see if we can add the content of the space buffer to the current line
 			if w.word.Len() == 0 {
 				if w.pos+w.space.Len() > w.width {
@@ -176,25 +176,25 @@ func (w *Writer) Write(b []byte) (n int, err error) {
 			}
 			w.writeWord()
 			w.writeNewLine()
-		case unicode.IsSpace(curr): // end of current word
+		case unicode.IsSpace(c): // end of current word
 			w.writeWord()
-			if curr == '\t' && w.tabWidh > 0 {
+			if c == '\t' && w.tabWidh > 0 {
 				// Replace tabs with spaces while preserving alignment.
 				w.space.Write(bytes.Repeat([]byte{' '}, w.tabWidh-w.pos%w.tabWidh))
 			} else {
-				w.space.WriteRune(curr)
+				w.space.WriteRune(c)
 			}
-		case w.isBreakpoint(curr): // valid breakpoint
+		case w.isBreakpoint(c): // valid breakpoint
 			w.writeSpaces()
 			w.writeWord()
 			// encode & write current rune
 			var b = make([]byte, utf8.UTFMax)
-			size := utf8.EncodeRune(b, curr)
+			size := utf8.EncodeRune(b, c)
 			b = b[:size]
 			w.writer.Write(b)
 			w.pos++
 		default: // any other character
-			w.word.WriteRune(curr)
+			w.word.WriteRune(c)
 			w.wordLen++
 			// add a line break if the current word would exceed the line's
 			// character limit
