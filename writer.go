@@ -31,16 +31,17 @@ func Bytes(b []byte, width uint) []byte {
 // number of characters. Newlines are preserved, including consecutive and
 // trailing newlines, though trailing whitespace is stripped from each line.
 type Writer struct {
-	writer    io.Writer    // default writer
-	width     int          // recommended line length in runes
-	tabWidh   int          // the width of tab characters
-	pos       int          // curent line position
-	space     bytes.Buffer // trailing word spaces
-	word      bytes.Buffer // word builder
-	wordLen   int          // word length in runes
-	prefix    string       // prefix for new line
-	prefixLen int          // prefix length in runes
-	newLine   bool         // newline flag
+	writer      io.Writer    // default writer
+	width       int          // recommended line length in runes
+	tabWidh     int          // the width of tab characters
+	pos         int          // curent line position
+	space       bytes.Buffer // trailing word spaces
+	word        bytes.Buffer // word builder
+	wordLen     int          // word length in runes
+	newLine     bool         // newline flag
+	prefix      string       // prefix for new line
+	prefixLen   int          // prefix length in runes
+	breakpoints []rune       // additional word break runes
 }
 
 // New returns a new initialized wrapper over io.Writer to write lines with
@@ -71,6 +72,20 @@ func (w *Writer) SetPrefix(s string) {
 // GetPrefix return the current Writer prefix.
 func (w *Writer) GetPrefix() string {
 	return w.prefix
+}
+
+// SetBreakpoints set additional word breakpoint runes. For exaple: "-:^".
+func (w *Writer) SetBreakpoints(s string) {
+	w.breakpoints = bytes.Runes([]byte(s))
+}
+
+func (w *Writer) isBreakpoint(c rune) bool {
+	for _, r := range w.breakpoints {
+		if r == c {
+			return true
+		}
+	}
+	return false
 }
 
 // SetPosition set current line position for correct word wrapping.
@@ -159,12 +174,21 @@ func (w *Writer) Write(b []byte) (n int, err error) {
 			} else {
 				w.space.WriteRune(curr)
 			}
+		case w.isBreakpoint(curr): // valid breakpoint
+			w.writeSpaces()
+			w.writeWord()
+			// encode & write current rune
+			var b = make([]byte, utf8.UTFMax)
+			size := utf8.EncodeRune(b, curr)
+			b = b[:size]
+			w.writer.Write(b)
+			w.pos++
 		default: // any other character
 			w.word.WriteRune(curr)
 			w.wordLen++
 			// add a line break if the current word would exceed the line's
 			// character limit
-			if w.pos+w.wordLen+w.space.Len() > w.width &&
+			if w.pos+w.wordLen+w.space.Len() >= w.width &&
 				w.wordLen <= w.width {
 				w.writeNewLine()
 			}
