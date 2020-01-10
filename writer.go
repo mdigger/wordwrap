@@ -144,7 +144,7 @@ func (w *Writer) writeNewLine() error {
 //
 // It returns the number of bytes written and any write error encountered.
 func (w *Writer) Write(b []byte) (n int, err error) {
-	if w.width < 1 {
+	if w.width < 1 && w.prefix == "" {
 		return w.writer.Write(b) // no wrap
 	}
 	// read all by runes
@@ -185,7 +185,7 @@ func (w *Writer) Write(b []byte) (n int, err error) {
 				w.space.WriteRune(c)
 			}
 		case w.isBreakpoint(c): // valid breakpoint
-			w.writeSpaces()
+			// w.writeSpaces()
 			w.writeWord()
 			// encode & write current rune
 			var b = make([]byte, utf8.UTFMax)
@@ -198,7 +198,8 @@ func (w *Writer) Write(b []byte) (n int, err error) {
 			w.wordLen++
 			// add a line break if the current word would exceed the line's
 			// character limit
-			if w.pos+w.wordLen+w.space.Len() >= w.width &&
+			if w.width > 0 &&
+				w.pos+w.wordLen+w.space.Len() >= w.width &&
 				w.wordLen <= w.width {
 				w.writeNewLine()
 			}
